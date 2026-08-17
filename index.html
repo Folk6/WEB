@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MoneyFlow</title>
+
+  <!-- Tailwind CSS ผ่าน CDN ไม่ต้องติดตั้งอะไรเพิ่ม -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- ฟอนต์ไทย Noto Sans Thai จาก Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    /* ตั้งฟอนต์ไทยให้ทั้งหน้าเว็บ */
+    body {
+      font-family: "Noto Sans Thai", sans-serif;
+    }
+  </style>
+</head>
+
+<!--
+  พื้นหลังสีเทาอ่อนทั้งหน้า
+  padding-bottom เผื่อพื้นที่ด้านล่างไว้ให้ไม่โดนแถบเมนูล่าง (bottom nav) บัง
+-->
+<body class="bg-gray-100 min-h-screen pb-24">
+
+  <!-- ================= Header ================= -->
+  <!-- แถบหัวข้อด้านบนสุด แสดงชื่อแอปชิดซ้าย -->
+  <header class="bg-white shadow-sm px-4 py-4">
+    <h1 class="text-xl font-bold text-gray-800">MoneyFlow</h1>
+  </header>
+
+  <!-- เนื้อหาหลักของหน้า จำกัดความกว้างสูงสุดไว้เผื่อเปิดบนจอใหญ่ -->
+  <main class="max-w-md mx-auto px-4 mt-4 space-y-4">
+
+    <!-- ================= การ์ดสรุปงบประมาณ ================= -->
+    <section class="bg-white rounded-2xl shadow-sm p-5 text-center">
+      <p class="text-sm text-gray-500">งบที่เหลือเดือนนี้</p>
+
+      <!-- ตัวเลขใหญ่ตรงกลาง (ตอนนี้เป็นข้อมูล mock ไปก่อน) -->
+      <p class="text-4xl font-bold text-gray-800 mt-1">8,450.00 ฿</p>
+
+      <!-- แถบ progress bar แสดงสัดส่วนงบที่ใช้ไปแล้ว -->
+      <div class="w-full bg-gray-200 rounded-full h-3 mt-4 overflow-hidden">
+        <div class="bg-blue-500 h-3 rounded-full" style="width: 65%"></div>
+      </div>
+
+      <p class="text-sm text-gray-500 mt-2">ใช้ได้อีกวันละ 705.00 บาท</p>
+    </section>
+
+    <!-- ================= แถวสรุปรายรับ / รายจ่าย ================= -->
+    <section class="grid grid-cols-2 gap-4">
+      <!-- รายรับรวม สีเขียว -->
+      <div class="bg-white rounded-2xl shadow-sm p-4 text-center">
+        <p class="text-sm text-gray-500">รายรับรวม</p>
+        <p class="text-lg font-semibold text-green-600 mt-1">+15,000.00 ฿</p>
+      </div>
+
+      <!-- รายจ่ายรวม สีแดง -->
+      <div class="bg-white rounded-2xl shadow-sm p-4 text-center">
+        <p class="text-sm text-gray-500">รายจ่ายรวม</p>
+        <p class="text-lg font-semibold text-red-600 mt-1">-6,550.00 ฿</p>
+      </div>
+    </section>
+
+    <!-- ================= รายการล่าสุด ================= -->
+    <section class="bg-white rounded-2xl shadow-sm p-4">
+      <h2 class="text-base font-semibold text-gray-800 mb-3">รายการล่าสุด</h2>
+
+      <!-- ul นี้เริ่มว่างเปล่า แล้วให้ script.js เติมรายการจริงจาก localStorage ให้ -->
+      <ul id="recent-list" class="divide-y divide-gray-100"></ul>
+    </section>
+
+  </main>
+
+  <!-- ================= ปุ่มลอย (Floating Action Button) ================= -->
+  <!--
+    ปุ่มวงกลมลอยมุมขวาล่าง ไว้กดเพิ่มรายการใหม่
+    fixed = ลอยอยู่กับที่แม้เลื่อนหน้าจอ, วางไว้เหนือแถบเมนูล่าง (bottom-24)
+  -->
+  <button
+    id="fab-button"
+    class="fixed bottom-24 right-5 w-14 h-14 rounded-full bg-blue-600 text-white text-3xl leading-none shadow-lg flex items-center justify-center hover:bg-blue-700 transition"
+    aria-label="เพิ่มรายการใหม่"
+  >
+    +
+  </button>
+
+  <!-- ================= แถบเมนูล่างสุด (Bottom Navigation) ================= -->
+  <!-- fixed ให้ติดขอบล่างของจอตลอดเวลา มี 4 ปุ่มหลักของแอป -->
+  <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around items-center py-2">
+    <button class="flex flex-col items-center text-blue-600 text-xs">
+      <span class="text-lg">🏠</span>
+      หน้าแรก
+    </button>
+    <button class="flex flex-col items-center text-gray-400 text-xs">
+      <span class="text-lg">📋</span>
+      รายการ
+    </button>
+    <button class="flex flex-col items-center text-gray-400 text-xs">
+      <span class="text-lg">📊</span>
+      รายงาน
+    </button>
+    <button class="flex flex-col items-center text-gray-400 text-xs">
+      <span class="text-lg">⚙️</span>
+      ตั้งค่า
+    </button>
+  </nav>
+
+  <!-- ================= Modal ฟอร์มเพิ่มรายการ ================= -->
+  <!--
+    ฉากหลังสีดำโปร่งแสง (overlay) ครอบทั้งจอ + กล่องฟอร์มด้านล่าง
+    ซ่อนไว้ก่อนด้วย class "hidden" ของ Tailwind แล้วให้ script.js เป็นคนสั่งเปิด/ปิด
+  -->
+  <div
+    id="modal-overlay"
+    class="hidden fixed inset-0 bg-black/50 z-40 flex items-end justify-center"
+  >
+    <div class="bg-white w-full max-w-md rounded-t-2xl p-5 max-h-[90vh] overflow-y-auto">
+
+      <!-- หัวข้อ modal + ปุ่มปิด -->
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-bold text-gray-800">เพิ่มรายการ</h2>
+        <button id="modal-close-btn" type="button" class="text-gray-400 text-2xl leading-none">
+          &times;
+        </button>
+      </div>
+
+      <form id="transaction-form">
+        <!-- ปุ่มสลับ รายจ่าย / รายรับ -->
+        <div class="grid grid-cols-2 gap-2 mb-4">
+          <button type="button" id="type-expense-btn" data-type="expense" class="py-2 rounded-xl font-semibold">
+            รายจ่าย
+          </button>
+          <button type="button" id="type-income-btn" data-type="income" class="py-2 rounded-xl font-semibold">
+            รายรับ
+          </button>
+        </div>
+
+        <!-- ช่องกรอกจำนวนเงิน หน่วยเป็น "บาท" ตามปกติ (เช่น 125.50) -->
+        <!-- ตอนบันทึกจริง script.js จะแปลงเป็นสตางค์ให้เอง -->
+        <div class="mb-4 text-center">
+          <label class="text-sm text-gray-500" for="amount-input">จำนวนเงิน (บาท)</label>
+          <input
+            type="number"
+            id="amount-input"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            class="w-full text-center text-3xl font-bold text-gray-800 mt-1 outline-none border-b-2 border-gray-200 focus:border-blue-500 py-2"
+          />
+        </div>
+
+        <!-- กริดเลือกหมวดหมู่ ตัวปุ่มทั้งหมดถูกสร้างด้วย JavaScript ใน script.js -->
+        <div class="mb-4">
+          <label class="text-sm text-gray-500 mb-2 block">หมวดหมู่</label>
+          <div id="category-grid" class="grid grid-cols-3 gap-2"></div>
+        </div>
+
+        <!-- ช่องวันที่ (ค่าเริ่มต้นเป็นวันนี้ ตั้งค่าโดย script.js) -->
+        <div class="mb-4">
+          <label class="text-sm text-gray-500 mb-1 block" for="date-input">วันที่</label>
+          <input
+            type="date"
+            id="date-input"
+            class="w-full border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-blue-500"
+          />
+        </div>
+
+        <!-- ช่องโน้ต ไม่บังคับกรอก -->
+        <div class="mb-5">
+          <label class="text-sm text-gray-500 mb-1 block" for="note-input">โน้ต (ไม่บังคับ)</label>
+          <input
+            type="text"
+            id="note-input"
+            placeholder="เช่น ค่ากาแฟที่ร้าน..."
+            class="w-full border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-blue-500"
+          />
+        </div>
+
+        <!-- ปุ่มบันทึก: type="submit" เพื่อให้กด Enter ในฟอร์มก็บันทึกได้ -->
+        <button
+          type="submit"
+          class="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition"
+        >
+          บันทึก
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- เชื่อมไฟล์ JavaScript ไว้ท้ายสุดของ body เพื่อให้มั่นใจว่า element ทั้งหมดถูกสร้างในหน้าแล้ว -->
+  <script src="script.js"></script>
+</body>
+</html>
