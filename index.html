@@ -8,6 +8,9 @@
   <!-- Tailwind CSS ผ่าน CDN ไม่ต้องติดตั้งอะไรเพิ่ม -->
   <script src="https://cdn.tailwindcss.com"></script>
 
+  <!-- Chart.js ผ่าน CDN ใช้วาดกราฟโดนัทและกราฟแท่ง -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
   <!-- ฟอนต์ไทย Noto Sans Thai จาก Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -39,43 +42,117 @@
   <!-- เนื้อหาหลักของหน้า จำกัดความกว้างสูงสุดไว้เผื่อเปิดบนจอใหญ่ -->
   <main class="max-w-md mx-auto px-4 mt-4 space-y-4">
 
-    <!-- ================= การ์ดสรุปงบประมาณ ================= -->
-    <section class="bg-white rounded-2xl shadow-sm p-5 text-center">
-      <p class="text-sm text-gray-500">งบที่เหลือเดือนนี้</p>
+    <!-- ================= View: หน้าแรก (Dashboard) ================= -->
+    <!-- script.js จะสลับ hidden ให้ view นี้กับ view-transactions ตามแท็บที่กด -->
+    <div id="view-home">
 
-      <!-- ตัวเลขใหญ่ตรงกลาง (ตอนนี้เป็นข้อมูล mock ไปก่อน) -->
-      <p class="text-4xl font-bold text-gray-800 mt-1">8,450.00 ฿</p>
+      <!-- ================= การ์ดสรุปงบประมาณ ================= -->
+      <!-- ตัวเลขทั้งหมดในการ์ดนี้ script.js จะคำนวณจากข้อมูลจริงแล้วเติมให้ (ดูฟังก์ชัน renderDashboardSummary) -->
+      <section class="bg-white rounded-2xl shadow-sm p-5 text-center">
+        <div class="flex items-center justify-center gap-1">
+          <p class="text-sm text-gray-500">งบที่เหลือเดือนนี้</p>
+          <!-- ปุ่มดินสอ กดแล้วเปิดกล่องให้กรอกงบประมาณใหม่ -->
+          <button
+            id="edit-budget-btn"
+            type="button"
+            class="text-gray-400 hover:text-blue-600 text-sm leading-none"
+            aria-label="ตั้งงบประมาณ"
+          >
+            ✏️
+          </button>
+        </div>
 
-      <!-- แถบ progress bar แสดงสัดส่วนงบที่ใช้ไปแล้ว -->
-      <div class="w-full bg-gray-200 rounded-full h-3 mt-4 overflow-hidden">
-        <div class="bg-blue-500 h-3 rounded-full" style="width: 65%"></div>
+        <!-- ตัวเลขใหญ่ตรงกลาง เริ่มต้นว่างไว้ก่อน รอ script.js เติมให้ -->
+        <p id="budget-remaining-text" class="text-4xl font-bold text-gray-800 mt-1">-</p>
+
+        <!-- แถบ progress bar แสดงสัดส่วนงบที่ใช้ไปแล้ว สีจะเปลี่ยนตามเปอร์เซ็นต์ที่ใช้ -->
+        <div class="w-full bg-gray-200 rounded-full h-3 mt-4 overflow-hidden">
+          <div id="budget-progress-bar" class="bg-gray-300 h-3 rounded-full" style="width: 0%"></div>
+        </div>
+
+        <p id="daily-allowance-text" class="text-sm text-gray-500 mt-2"></p>
+      </section>
+
+      <!-- ================= แถวสรุปรายรับ / รายจ่าย ================= -->
+      <!-- ยอดรวมของ "เดือนปัจจุบัน" เท่านั้น (ไม่ใช่ยอดรวมทั้งหมดตั้งแต่เริ่มใช้แอป) -->
+      <section class="grid grid-cols-2 gap-4 mt-4">
+        <!-- รายรับรวม สีเขียว -->
+        <div class="bg-white rounded-2xl shadow-sm p-4 text-center">
+          <p class="text-sm text-gray-500">รายรับรวม</p>
+          <p id="income-total" class="text-lg font-semibold text-green-600 mt-1">+0.00 ฿</p>
+        </div>
+
+        <!-- รายจ่ายรวม สีแดง -->
+        <div class="bg-white rounded-2xl shadow-sm p-4 text-center">
+          <p class="text-sm text-gray-500">รายจ่ายรวม</p>
+          <p id="expense-total" class="text-lg font-semibold text-red-600 mt-1">-0.00 ฿</p>
+        </div>
+      </section>
+
+      <!-- ================= รายการล่าสุด ================= -->
+      <section class="bg-white rounded-2xl shadow-sm p-4 mt-4">
+        <h2 class="text-base font-semibold text-gray-800 mb-3">รายการล่าสุด</h2>
+
+        <!-- ul นี้เริ่มว่างเปล่า แล้วให้ script.js เติมรายการจริงจาก localStorage ให้ -->
+        <ul id="recent-list" class="divide-y divide-gray-100"></ul>
+      </section>
+
+      <!-- ================= กราฟสัดส่วนรายจ่ายตามหมวดหมู่ (เดือนนี้) ================= -->
+      <section class="bg-white rounded-2xl shadow-sm p-4 mt-4">
+        <h2 class="text-base font-semibold text-gray-800 mb-3">รายจ่ายตามหมวดหมู่ (เดือนนี้)</h2>
+
+        <!-- ยังไม่มีรายจ่ายในเดือนนี้เลย -> โชว์ข้อความนี้แทนกราฟที่วาดไม่ได้ -->
+        <p id="expense-chart-empty" class="text-center text-sm text-gray-400 py-6 hidden">
+          ยังไม่มีรายจ่ายในเดือนนี้
+        </p>
+
+        <div id="expense-chart-wrapper">
+          <canvas id="expense-doughnut-chart" height="220"></canvas>
+
+          <!-- legend สร้างเองด้วย JS แทนของ Chart.js เพื่อคุมสีให้ตรงกับ colors.js เป๊ะ ๆ -->
+          <ul id="expense-chart-legend" class="mt-4 space-y-1"></ul>
+        </div>
+
+        <!-- ประโยคสรุปที่คำนวณจากข้อมูลจริง เช่น หมวดที่ใช้จ่ายเยอะที่สุด -->
+        <p id="expense-chart-summary" class="text-sm text-gray-500 text-center mt-3"></p>
+      </section>
+
+    </div>
+
+    <!-- ================= View: รายการทั้งหมด ================= -->
+    <!-- เริ่มต้นซ่อนไว้ด้วย class "hidden" script.js จะเป็นคนสั่งแสดง/ซ่อน -->
+    <div id="view-transactions" class="hidden">
+      <h2 class="text-lg font-bold text-gray-800 mb-3">รายการทั้งหมด</h2>
+
+      <!-- ตรงนี้ script.js จะสร้างกลุ่มรายการแยกตามวันที่ให้ทั้งหมด -->
+      <div id="all-transactions-list"></div>
+    </div>
+
+    <!-- ================= View: รายงาน ================= -->
+    <div id="view-reports" class="hidden">
+      <h2 class="text-lg font-bold text-gray-800 mb-3">รายงาน</h2>
+
+      <!-- ปุ่มเลือกช่วงเวลา ปุ่มแรก "เดือนนี้" เป็นค่าเริ่มต้น (active) -->
+      <div class="grid grid-cols-4 gap-2 mb-4">
+        <button type="button" class="report-range-btn py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white" data-range="month">เดือนนี้</button>
+        <button type="button" class="report-range-btn py-2 rounded-xl text-xs font-semibold bg-gray-100 text-gray-500" data-range="3m">3 เดือน</button>
+        <button type="button" class="report-range-btn py-2 rounded-xl text-xs font-semibold bg-gray-100 text-gray-500" data-range="6m">6 เดือน</button>
+        <button type="button" class="report-range-btn py-2 rounded-xl text-xs font-semibold bg-gray-100 text-gray-500" data-range="year">ปีนี้</button>
       </div>
 
-      <p class="text-sm text-gray-500 mt-2">ใช้ได้อีกวันละ 705.00 บาท</p>
-    </section>
+      <section class="bg-white rounded-2xl shadow-sm p-4">
+        <h3 class="text-base font-semibold text-gray-800 mb-3">เปรียบเทียบรายรับ-รายจ่าย</h3>
 
-    <!-- ================= แถวสรุปรายรับ / รายจ่าย ================= -->
-    <section class="grid grid-cols-2 gap-4">
-      <!-- รายรับรวม สีเขียว -->
-      <div class="bg-white rounded-2xl shadow-sm p-4 text-center">
-        <p class="text-sm text-gray-500">รายรับรวม</p>
-        <p class="text-lg font-semibold text-green-600 mt-1">+15,000.00 ฿</p>
-      </div>
+        <p id="report-chart-empty" class="text-center text-sm text-gray-400 py-6 hidden">
+          ยังไม่มีข้อมูลในช่วงเวลานี้
+        </p>
 
-      <!-- รายจ่ายรวม สีแดง -->
-      <div class="bg-white rounded-2xl shadow-sm p-4 text-center">
-        <p class="text-sm text-gray-500">รายจ่ายรวม</p>
-        <p class="text-lg font-semibold text-red-600 mt-1">-6,550.00 ฿</p>
-      </div>
-    </section>
+        <canvas id="report-bar-chart" height="240"></canvas>
 
-    <!-- ================= รายการล่าสุด ================= -->
-    <section class="bg-white rounded-2xl shadow-sm p-4">
-      <h2 class="text-base font-semibold text-gray-800 mb-3">รายการล่าสุด</h2>
-
-      <!-- ul นี้เริ่มว่างเปล่า แล้วให้ script.js เติมรายการจริงจาก localStorage ให้ -->
-      <ul id="recent-list" class="divide-y divide-gray-100"></ul>
-    </section>
+        <!-- ประโยคสรุปที่คำนวณจากข้อมูลจริงของช่วงเวลาที่เลือก -->
+        <p id="report-chart-summary" class="text-sm text-gray-500 text-center mt-3"></p>
+      </section>
+    </div>
 
   </main>
 
@@ -95,15 +172,15 @@
   <!-- ================= แถบเมนูล่างสุด (Bottom Navigation) ================= -->
   <!-- fixed ให้ติดขอบล่างของจอตลอดเวลา มี 4 ปุ่มหลักของแอป -->
   <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around items-center py-2">
-    <button class="flex flex-col items-center text-blue-600 text-xs">
+    <button id="nav-home-btn" class="flex flex-col items-center text-blue-600 text-xs">
       <span class="text-lg">🏠</span>
       หน้าแรก
     </button>
-    <button class="flex flex-col items-center text-gray-400 text-xs">
+    <button id="nav-list-btn" class="flex flex-col items-center text-gray-400 text-xs">
       <span class="text-lg">📋</span>
       รายการ
     </button>
-    <button class="flex flex-col items-center text-gray-400 text-xs">
+    <button id="nav-report-btn" class="flex flex-col items-center text-gray-400 text-xs">
       <span class="text-lg">📊</span>
       รายงาน
     </button>
@@ -126,7 +203,7 @@
 
       <!-- หัวข้อ modal + ปุ่มปิด -->
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-bold text-gray-800">เพิ่มรายการ</h2>
+        <h2 id="modal-title" class="text-lg font-bold text-gray-800">เพิ่มรายการ</h2>
         <button id="modal-close-btn" type="button" class="text-gray-400 text-2xl leading-none">
           &times;
         </button>
@@ -196,6 +273,8 @@
   </div>
 
   <!-- เชื่อมไฟล์ JavaScript ไว้ท้ายสุดของ body เพื่อให้มั่นใจว่า element ทั้งหมดถูกสร้างในหน้าแล้ว -->
+  <!-- colors.js ต้องมาก่อน script.js เพราะ script.js เรียกใช้ getCategoryColor() จากไฟล์นั้น -->
+  <script src="colors.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
